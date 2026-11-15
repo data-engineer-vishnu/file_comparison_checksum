@@ -1,0 +1,123 @@
+# ============================================================================
+# Checksum config: one entry under "files" per raw CSV.
+# Running  python generate_checksum.py  creates one checksum file per entry.
+#
+# PATHS
+#   * Relative paths are relative to the project folder (where generate_checksum.py is).
+#   * Windows absolute paths: use forward slashes  D:/exports/sales.csv
+#     or single quotes  'D:\exports\sales.csv'.  Do NOT use double quotes with
+#     backslashes ("D:\new\x.csv"): YAML treats backslashes there as escape characters.
+#
+# PER-FILE KEYS
+#   name      optional  unique label used in messages (default: input file name without .csv)
+#   input     REQUIRED  raw CSV
+#   output    optional  checksum CSV (default: <output_dir>/<input name>_checksum.csv)
+#   enabled   optional  false = skip this file
+#   + every checksum setting: primary_keys, include_columns, exclude_columns,
+#     column_rules, default_rule, null_handling, hash_algorithm, on_parse_error,
+#     case_insensitive_headers, csv
+#
+# DEFAULTS
+#   Any checksum setting put under "defaults" applies to every file unless the
+#   file sets it itself. column_rules / null_handling / csv are merged key by key;
+#   anything else set on a file replaces the default.
+#
+# Use the SAME columns and rules for a file on-prem and in the cloud,
+# otherwise every row of that file will show as MISMATCH.
+# ============================================================================
+
+output_dir: files/checksum_files
+
+defaults:
+  null_handling:
+    null_token: "<<NULL>>"
+    null_values: ["", "NULL"]
+  default_rule:
+    type: string
+    trim: true
+  hash_algorithm: sha256
+  on_parse_error: keep_raw       # keep_raw = hash unparsable values as-is | error = fail the file
+  csv:
+    delimiter: ","
+    quotechar: '"'
+    encoding: utf-8-sig
+
+files:
+
+  - name: employee_records
+    input: files/raw_files/employee_records.csv
+    output: files/checksum_files/onprem/employee_records_checksum.csv
+    primary_keys: [Employee_ID]
+    include_columns:             # or "*" for every column
+      - Employee_Name
+      - Age
+      - Country
+      - Department
+      - Position
+      - Salary
+      - Joining_Date
+    exclude_columns: []          # columns you genuinely cannot reconcile
+    column_rules:                # types: string | integer | decimal | boolean | date | datetime
+      Employee_ID:  { type: integer }
+      Age:          { type: integer }
+      Salary:       { type: decimal, scale: 2 }
+      Joining_Date: { type: date, input_formats: ["%Y-%m-%d", "%m/%d/%Y"] }
+
+  # Sample "cloud" file, so both checksum files can be produced on this machine.
+  # (On the real cloud laptop this would be a separate copy of this YAML.)
+  - name: employee_records_cloud
+    input: files/raw_files/employee_records_altered.csv
+    output: files/checksum_files/cloud/employee_records_altered_checksum.csv
+    primary_keys: [Employee_ID]
+    include_columns: [Employee_Name, Age, Country, Department, Position, Salary, Joining_Date]
+    exclude_columns: []
+    column_rules:
+      Employee_ID:  { type: integer }
+      Age:          { type: integer }
+      Salary:       { type: decimal, scale: 2 }
+      Joining_Date: { type: date, input_formats: ["%Y-%m-%d", "%m/%d/%Y"] }
+
+  - name: finance_onprem
+    input: files/raw_files/Finance_data.csv
+    output: files/checksum_files/onprem/Finance_data_checksum.csv
+    primary_keys: [Id]
+    include_columns:             # or "*" for every column
+      - gender
+      - age
+      - Investment_Avenues
+      - Mutual_Funds
+      - Equity_Market
+      - Debentures
+      - Government_Bonds
+      - Fixed_Deposits
+    exclude_columns: []          # columns you genuinely cannot reconcile
+    column_rules:                # types: string | integer | decimal | boolean | date | datetime
+
+  # Sample "cloud" file, so both checksum files can be produced on this machine.
+  # (On the real cloud laptop this would be a separate copy of this YAML.)
+  - name: finance_cloud
+    input: files/raw_files/Finance_data_altered.csv
+    output: files/checksum_files/cloud/Finance_data_altered_checksum.csv
+    primary_keys: [Id]
+    include_columns:             # or "*" for every column
+      - gender
+      - age
+      - Investment_Avenues
+      - Mutual_Funds
+      - Equity_Market
+      - Debentures
+      - Government_Bonds
+      - Fixed_Deposits
+    exclude_columns: []
+    column_rules:
+  # Template for the next file:
+  # - name: sales_orders
+  #   input: D:/exports/sales_orders.csv
+  #   output: D:/checksums/sales_orders_checksum.csv
+  #   primary_keys: [Order_ID, Line_No]
+  #   include_columns: "*"
+  #   exclude_columns: [Last_Updated_Ts]
+  #   column_rules:
+  #     Is_Active:  { type: boolean }
+  #     Created_At: { type: datetime, precision: seconds }
+  #     Amount:     { type: decimal, scale: 2 }
