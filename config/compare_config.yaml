@@ -1,0 +1,52 @@
+# ============================================================================
+# Compare config: which on-prem checksum file is compared with which cloud one.
+# Running  python compare_checksums.py  compares every pair and writes one
+# result CSV per pair plus a run summary.
+#
+# PATHS
+#   * Folders are relative to the project folder (or absolute).
+#   * In each pair, "source" is relative to source_dir and "target" to
+#     target_dir - or give an absolute path.
+#   * Windows absolute paths: use forward slashes  D:/checksums/onprem
+#     or single quotes  'D:\checksums\onprem'  (never double quotes with backslashes).
+# ============================================================================
+
+source_dir: files/checksum_files/onprem    # the on-prem checksum files you brought over
+target_dir: files/checksum_files/cloud     # the cloud checksum files
+result_dir: files/comparison_results       # one <name>_comparison.csv per pair is written here
+
+source_label: onprem                       # used in result column names / statuses
+target_label: cloud
+only_differences: false                    # true = result files contain only non-MATCH rows
+
+# true  = additionally pair every file in source_dir with the file of the SAME
+#         name in target_dir (case-insensitive), unless it is already listed below.
+#         Files without a same-named partner are reported in the summary.
+# false = compare only the pairs listed under "comparisons".
+auto_match_same_names: true
+
+comparisons:
+  # PAIR KEYS
+  #   name     optional  label, also the result file name (default: source file name without .csv)
+  #   source   REQUIRED  on-prem checksum file
+  #   target   REQUIRED  cloud checksum file
+  #   result   optional  result file (default: <result_dir>/<name>_comparison.csv)
+  #   enabled  optional  false = skip this pair
+
+  - name: employee_records
+    source: employee_records_checksum.csv
+    target: employee_records_altered_checksum.csv
+
+  - name: finance
+    source: Finance_data_checksum.csv
+    target: Finance_data_altered_checksum.csv
+
+  # Example where the names differ between on-prem and cloud:
+  # - name: sales_orders
+  #   source: SALES_ORDERS_checksum.csv
+  #   target: sales_orders_bq_checksum.csv
+  #
+  # Example with files outside the folders above:
+  # - name: customers
+  #   source: D:/other/customers_checksum.csv
+  #   target: D:/cloud_exports/customers_checksum.csv
